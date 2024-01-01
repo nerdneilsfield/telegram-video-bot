@@ -43,10 +43,11 @@ async def message_handler(update: Update, context: CallbackContext, message=None
 
     _message = message or update.message.text
 
-    logger.info("message: {_message}")
+    logger.info(f"message: {_message}")
 
     if RegexFilter.is_bilibili_url(_message):
-        await update.message.reply_text("Yep, you send a bilibili url", parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_chat_action(ChatAction.TYPING)
+        await update.message.reply_text(RegexFilter.transform_bilibili_url(_message))
     
 
 
