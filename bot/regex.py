@@ -2,7 +2,7 @@ import logging
 import re
 
 import coloredlogs
-from utils import get_redicrect_url, pure_bilibili_url
+from utils import get_redicrect_url, pure_bilibili_url, pure_youtube_url
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -45,16 +45,23 @@ class RegexFilter():
                 bilibili_real_url = get_redicrect_url(bilibili_short_url)
                 logger.info(f"bilibili_real_url: {bilibili_real_url}")
                 bilibili_pure_url = pure_bilibili_url(bilibili_real_url)
-                return url.replace(bilibili_short_url, bilibili_pure_url)
+                return bilibili_pure_url
             else:
-                return "不是正常的 b23.tv 链接"
+                raise ValueError(f"not a valid bilibili short url: {url}")
+        else:
+            raise ValueError(f"not a valid bilibili url: {url}")
             
-            
+    @staticmethod
+    def transform_youtube_url(url: str) -> str:
+        return pure_youtube_url(url)
 
     @staticmethod
     def is_youtube_url(url: str) -> bool:
         youtube_url_regex = re.compile(r"https?://(?:www\.)?youtube")
+        youtube_short_url_regex = re.compile(r"https?://(?:www\.|)youtu\.be")
         if youtube_url_regex.match(url):
+            return True
+        elif youtube_short_url_regex.match(url):
             return True
         else:
             return False

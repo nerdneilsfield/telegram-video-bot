@@ -1,0 +1,18 @@
+version: "3"
+  
+networks:
+  proxy:
+    external: true
+
+services:
+  telegram_video_bot:
+      container_name: telegram_video_bot
+      image: nerdneilsfield/telegram-video-bot:latest
+      command: python3 bot/bot.py
+      restart: always
+      networks:
+        - proxy
+      volumes:
+        - ./config.toml:/code/config/config.toml
+      environment:
+        - "traefik.enable=false"

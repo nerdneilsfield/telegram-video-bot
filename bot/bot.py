@@ -1,14 +1,16 @@
 import logging
+import os
 import random
 import time
 
 import coloredlogs
-from telegram import BotCommand, Update, User
+from telegram import BotCommand, Update, User, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction, ParseMode
-from telegram.ext import CallbackContext, CommandHandler, filters, MessageHandler, Updater, AIORateLimiter, Application, ApplicationBuilder
+from telegram.ext import CallbackContext, CommandHandler, filters, MessageHandler, Updater, AIORateLimiter, Application, ApplicationBuilder, CallbackQueryHandler
 
 import config
 from regex import RegexFilter
+from downloader import download_yt_video, download_yt_audio
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -47,9 +49,59 @@ async def message_handler(update: Update, context: CallbackContext, message=None
 
     if RegexFilter.is_bilibili_url(_message):
         await update.message.reply_chat_action(ChatAction.TYPING)
-        await update.message.reply_text(RegexFilter.transform_bilibili_url(_message))
+        try:
+            pure_bilibili_url = RegexFilter.transform_bilibili_url(_message)
+            await update.message.reply_text(pure_bilibili_url)
+            keyboard = [[
+                InlineKeyboardButton("Download Video", callback_data=f'download_bili_video {pure_youtube_url}'),
+                InlineKeyboardButton("Download Audio", callback_data=f'download_bili_audio {pure_youtube_url}'),
+                InlineKeyboardButton("Download Subtitle", callback_data=f'download_bili_subtitle {pure_youtube_url}')
+            ]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text("Choose a download option:", reply_markup=reply_markup)
+        except Exception as e:
+            await update.message.reply_text(str(e))
+    elif RegexFilter.is_youtube_url(_message):
+        await update.message.reply_chat_action(ChatAction.TYPING)
+        pure_youtube_url = RegexFilter.transform_youtube_url(_message)
+        await update.message.reply_text(pure_youtube_url)
+        keyboard = [[
+            InlineKeyboardButton("Download Video", callback_data=f'download_yt_video {pure_youtube_url}'),
+            InlineKeyboardButton("Download Audio", callback_data=f'download_yt_audio {pure_youtube_url}'),
+            InlineKeyboardButton("Download Subtitle", callback_data=f'download_yt_subtitle {pure_youtube_url}')
+        ]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text("Choose a download option:", reply_markup=reply_markup)
+    else:
+        await update.message.reply_chat_action(ChatAction.TYPING)
+        await update.message.reply_text("Invalid url, only bilibili and youtube are supported!")
+        
+async def callback_query_handler(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    await query.answer()
+    option_type = query.data.split(" ")[0]
+    url = query.data.split(" ")[1]
     
-
+    if option_type == "download_bili_video":
+        await context.bot.send_message(chat_id=query.message.chat_id, text="Not implemented yet!")
+    elif option_type == "download_bili_audio":
+        await context.bot.send_message(chat_id=query.message.chat_id, text="Not implemented yet!")
+    elif option_type == "download_bili_subtitle":
+        await context.bot.send_message(chat_id=query.message.chat_id, text="Not implemented yet!")
+    elif option_type == "download_yt_video":
+        download_file_name = download_yt_video(url)
+        await context.bot.send_message(chat_id=query.message.chat_id, text=download_file_name)
+        await context.bot.send_document(chat_id=query.message.chat_id, document=open(download_file_name, "rb"), filename=os.path.basename(download_file_name))
+    elif option_type == "download_yt_audio":
+        download_file_name = download_yt_audio(url)
+        await context.bot.send_message(chat_id=query.message.chat_id, text=download_file_name)
+        await context.bot.send_document(chat_id=query.message.chat_id, document=open(download_file_name, "rb"), filename=os.path.basename(download_file_name))
+    elif option_type == "download_yt_subtitle":
+        await context.bot.send_message(chat_id=query.message.chat_id, text="Not implemented yet!")
+    else:
+        await context.bot.send_message(
+            chat_id=query.message.chat_id, text="Invalid option"
+        )
 
 async def start_handler(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text("Yep, the robot is running!", parse_mode=ParseMode.MARKDOWN)
@@ -112,6 +164,7 @@ def run_bot() -> None:
     application.add_handler(CommandHandler("start", start_handler, filters=None))
     application.add_handler(CommandHandler("version", version_handler, filters=None))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+    application.add_handler(CallbackQueryHandler(callback_query_handler))
     application.add_error_handler(error_handle)
 
     application.run_polling()

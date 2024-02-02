@@ -14,3 +14,7 @@ def pure_bilibili_url(url: str) -> str:
     base_url = urlunsplit((split_url.scheme, split_url.netloc, split_url.path, '', ''))
     return base_url
     
+def pure_youtube_url(url: str) -> str:
+    split_url = urlsplit(url)
+    base_url = urlunsplit((split_url.scheme, split_url.netloc, split_url.path, '', ''))
+    return base_url
